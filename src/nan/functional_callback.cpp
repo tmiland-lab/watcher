@@ -23,11 +23,10 @@ void _noop_callback_helper(const FunctionCallbackInfo<Value> & /*info*/)
 void _fn_callback_helper(const FunctionCallbackInfo<Value> &info)
 {
   Local<ArrayBuffer> cb_array = info.Data().As<ArrayBuffer>();
-  // V8 9 (Electron 13+): ArrayBuffer::Contents removed — use BackingStore.
-  auto cb_backing = cb_array->GetBackingStore();
-
-  auto *payload = static_cast<intptr_t *>(cb_backing->Data());
-  assert(cb_backing->ByteLength() == sizeof(FnCallback *));
+  // V8 9-13 portable (Data()/ByteLength() are exported on all Electron DLLs;
+  // GetBackingStore() returns shared_ptr and is not exported on Windows).
+  assert(cb_array->ByteLength() == sizeof(FnCallback *));
+  auto *payload = static_cast<intptr_t *>(cb_array->Data());
 
   auto *fn = reinterpret_cast<FnCallback *>(*payload);
 
@@ -42,7 +41,7 @@ unique_ptr<AsyncCallback> fn_callback(const char *async_name, FnCallback &fn)
 
   Local<ArrayBuffer> fn_addr =
     v8::ArrayBuffer::New(Isolate::GetCurrent(), sizeof(FnCallback *));
-  memcpy(fn_addr->GetBackingStore()->Data(), payload, sizeof(FnCallback *));
+  memcpy(fn_addr->Data(), payload, sizeof(FnCallback *));
   Local<Function> wrapper = Nan::New<Function>(_fn_callback_helper, fn_addr);
   return unique_ptr<AsyncCallback>(new AsyncCallback(async_name, wrapper));
 }
