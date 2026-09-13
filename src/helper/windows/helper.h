@@ -17,12 +17,6 @@ Result<std::wstring> to_wchar(const std::string &in);
 Result<std::wstring> to_long_path(const std::wstring &short_path);
 
 template <class V = void *>
-Result<V> windows_error_result(const std::string &prefix)
-{
-  return windows_error_result<V>(prefix, GetLastError());
-}
-
-template <class V = void *>
 Result<V> windows_error_result(const std::string &prefix, DWORD error_code)
 {
   LPVOID msg_buffer;
@@ -47,6 +41,12 @@ Result<V> windows_error_result(const std::string &prefix, DWORD error_code)
   LocalFree(msg_buffer);
 
   return Result<V>::make_error(msg.str());
+}
+
+template <class V = void *>
+Result<V> windows_error_result(const std::string &prefix)
+{
+  return windows_error_result<V>(prefix, GetLastError());
 }
 
 #endif
